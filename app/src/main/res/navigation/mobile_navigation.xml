@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_home"
+    >
+
+    <fragment
+        android:id="@+id/navigation_home"
+        android:name="com.edison.mulaki.main.mobile.home.HomeFragment"
+        android:label="@string/title_home"
+        tools:layout="@layout/fragment_home" />
+
+
+    <navigation
+        android:id="@+id/nav_graph_profile"
+        app:startDestination="@id/navigation_profile"
+        >
+
+        <fragment
+            android:id="@+id/navigation_profile"
+            android:name="com.edison.mulaki.main.mobile.profile.ProfileFragment"
+            android:label="@string/title_profile"
+            tools:layout="@layout/fragment_profile"
+            >
+
+            <action
+                android:id="@+id/action_profile_to_post"
+                app:destination="@+id/navigation_post"
+                app:exitAnim="@anim/transition"
+                app:popExitAnim="@anim/scale_down"
+                />
+
+        </fragment>
+
+
+        <fragment
+            android:id="@+id/navigation_post"
+            android:name="com.edison.mulaki.main.mobile.profile.ShowPostFragment"
+            android:label="Posts"
+            tools:layout="@layout/fragment_showpost"
+            />
+
+    </navigation>
+
+</navigation>

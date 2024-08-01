@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/auth_navigation"
+    app:startDestination="@id/navigation_wait"
+    >
+
+    <fragment
+        android:id="@+id/navigation_wait"
+        android:name="com.edison.mulaki.auth.WaitFragment"
+        tools:layout="@layout/fragment_wait"
+        android:label="Wait"
+        />
+
+    <fragment
+        android:id="@+id/navigation_login"
+        android:name="com.edison.mulaki.auth.LoginFragment"
+        tools:layout="@layout/fragment_login"
+        android:label="Login"
+        />
+
+    <fragment
+        android:id="@+id/navigation_register"
+        android:name="com.edison.mulaki.auth.RegisterFragment"
+        tools:layout="@layout/fragment_register"
+        android:label="Register"
+        />
+
+</navigation>

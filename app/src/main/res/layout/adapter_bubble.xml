@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:clickable="false"
+    android:padding="8dp"
+    >
+
+    <LinearLayout
+        android:id="@+id/bubbleContainer"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/shape_bubble_purple"
+        android:stateListAnimator="@drawable/animator_click"
+        android:padding="3dp"
+        >
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/bubbleCard"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
+            >
+
+            <LinearLayout
+                android:id="@+id/bubbleImageContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                >
+
+                <ImageView
+                    android:id="@+id/bubbleImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:adjustViewBounds="true"
+                    android:maxWidth="150dp"
+                    android:maxHeight="250dp"
+                    />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/bubbleMessage"
+            android:maxWidth="250dp"
+            android:minWidth="75dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:paddingTop="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            />
+
+        <TextView
+            android:id="@+id/bubbleSendate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="#D8D8D8"
+            android:padding="8dp"
+            android:layout_gravity="end"
+
+            />
+
+    </LinearLayout>
+
+</LinearLayout>
