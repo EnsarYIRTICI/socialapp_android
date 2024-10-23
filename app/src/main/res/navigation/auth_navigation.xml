@@ -8,21 +8,21 @@
 
     <fragment
         android:id="@+id/navigation_wait"
-        android:name="com.edison.mulaki.auth.WaitFragment"
+        android:name="com.edison.mulaki.Fragments.WaitFragment"
         tools:layout="@layout/fragment_wait"
         android:label="Wait"
         />
 
     <fragment
         android:id="@+id/navigation_login"
-        android:name="com.edison.mulaki.auth.LoginFragment"
+        android:name="com.edison.mulaki.Fragments.LoginFragment"
         tools:layout="@layout/fragment_login"
         android:label="Login"
         />
 
     <fragment
         android:id="@+id/navigation_register"
-        android:name="com.edison.mulaki.auth.RegisterFragment"
+        android:name="com.edison.mulaki.Fragments.RegisterFragment"
         tools:layout="@layout/fragment_register"
         android:label="Register"
         />
