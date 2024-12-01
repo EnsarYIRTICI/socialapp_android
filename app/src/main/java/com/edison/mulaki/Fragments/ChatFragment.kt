@@ -20,15 +20,12 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.edison.mulaki.ViewModels.ChatViewModel
-import com.edison.mulaki.Utils.AndreyBreslav
 import com.edison.mulaki.Utils.AndyRubin
 import com.edison.mulaki.Utils.RyanDahl
 import com.edison.mulaki.databinding.FragmentChatBinding
 import com.edison.mulaki.Utils.Auth
-import com.edison.mulaki.Utils.SocketKeys
 import com.edison.mulaki.Adapters.BubbleAdapter
-import io.socket.client.IO
-import io.socket.client.Socket
+import com.edison.mulaki.Services.RoomService
 import io.socket.emitter.Emitter
 import org.json.JSONArray
 import org.json.JSONException
@@ -40,23 +37,20 @@ class ChatFragment: Fragment(){
     private var _binding: FragmentChatBinding? = null
     private val binding get() = _binding!!
 
-    private var _inboxSocket: Socket? = null
-    private  val inboxSocket get() = _inboxSocket!!
-
     private val viewModel: ChatViewModel by viewModels()
     private val itemList = arrayListOf<JSONObject>()
 
-    private val socketKeys = SocketKeys()
+    private val roomService:RoomService = RoomService();
 
     private val lim:Int = 20
     private val set:Int = 0
+
     private var count:Int? = null
     private var countPrev:Int? = null
-    private val AUTH_UID get() = Auth.authData.get("uid").toString()
+    private val userId get() = Auth.authData.get("uid").toString()
 
-    private var DATA_ROOM:JSONObject? = null
-    private val ID_ROOM get() = DATA_ROOM?.getString("id")!!
-    private val USERNAME get() = DATA_ROOM?.getString("username")!!
+    private var roomData:JSONObject? = null
+    private val roomId get() = roomData?.getString("id")!!
 
     private var globalPosition:Int? = null
 
@@ -73,8 +67,7 @@ class ChatFragment: Fragment(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        DATA_ROOM = JSONObject(arguments?.getString("roomData").toString())
-        joinRoomSocket()
+        init()
     }
 
     override fun onCreateView(
@@ -85,12 +78,19 @@ class ChatFragment: Fragment(){
         _binding = FragmentChatBinding.inflate(inflater,container,false)
         val root:View = binding.root
 
-        roomViewSetup()
+        initView()
 
         return root
     }
 
-    private fun roomViewSetup(){
+    private  fun init(){
+        roomData = JSONObject(arguments?.getString("roomData").toString())
+
+        roomService.initialize(roomId, userId)
+        roomService.get(onGet)
+    }
+
+    private fun initView(){
         registerForContextMenu(binding.bubbleListView)
 
         LocalBroadcastManager.getInstance(requireContext()).registerReceiver(broadcastReceiver,
@@ -106,10 +106,10 @@ class ChatFragment: Fragment(){
         viewModel.resultLiveData.observe(viewLifecycleOwner, Observer { result ->
             if(count==countPrev) {
                 createList(JSONArray(result.toString()))
-                createAdapter(ID_ROOM)
+                createAdapter()
             } else {
                 updateList(JSONArray(result.toString()))
-                createAdapter(ID_ROOM)
+                createAdapter()
                 countPrev = count
             }
         })
@@ -121,18 +121,18 @@ class ChatFragment: Fragment(){
             }
             else {
                 count = result.toInt()
-                viewModel.findAll(ID_ROOM, count!!-countPrev!!, set)
+                viewModel.findAll(roomId, count!!-countPrev!!, set)
             }
 
         })
 
         viewModel.bubble.observe(viewLifecycleOwner, Observer { result->
-            viewModel.count(ID_ROOM)
+            viewModel.count(roomId)
         })
 
         viewModel.file.observe(viewLifecycleOwner, Observer { result->
-            viewModel.count(ID_ROOM)
-            socketSendMessage()
+            viewModel.count(roomId)
+            onFileSend()
         })
 
         viewModel.warn.observe(viewLifecycleOwner, Observer { result->
@@ -149,11 +149,11 @@ class ChatFragment: Fragment(){
         })
 
 
-        viewModel.findAll(ID_ROOM, lim, set)
-        viewModel.count(ID_ROOM)
+        viewModel.findAll(roomId, lim, set)
+        viewModel.count(roomId)
 
         binding.sendBubble.setOnClickListener {
-            sendBubble()
+            onSend()
         }
 
         binding.openGallery.setOnClickListener{
@@ -167,20 +167,7 @@ class ChatFragment: Fragment(){
 
     }
 
-    private fun joinRoomSocket(){
-        try {
-            val opts = IO.Options()
-            opts.path = "/socket/inbox"
 
-            _inboxSocket = IO.socket(RyanDahl().SOCKET_URL, opts)
-
-            inboxSocket.connect()
-            inboxSocket.emit(socketKeys.JOIN_ROOM,ID_ROOM);
-            inboxSocket.on(socketKeys.ON_MESSAGE, onGetMessage)
-        } catch (e: Exception) {
-            showResult(e.message!!)
-        }
-    }
 
     private fun updateList(jsonArray: JSONArray){
         for(i in 0 until jsonArray.length()) {
@@ -197,28 +184,47 @@ class ChatFragment: Fragment(){
         }
     }
 
-    private fun createAdapter(ID_ROOM:String) {
-        adapter =  BubbleAdapter(requireContext(), itemList.reversed(), ID_ROOM, AUTH_UID)
+    private fun createAdapter() {
+        adapter =  BubbleAdapter(requireContext(), itemList.reversed(), roomId, userId)
         binding.bubbleListView.adapter = adapter
         if(count == countPrev) {
             binding.bubbleListView.setSelection(20)
         }
         adapter.onEndOfListReached={
             if(itemList.count() < (count ?: 0)) {
-                viewModel.findAll(ID_ROOM, lim, itemList.count())
+                viewModel.findAll(roomId, lim, itemList.count())
             }
         }
     }
 
 
-    private val onGetMessage = Emitter.Listener { args ->
+    private val onGet = Emitter.Listener { args ->
         requireActivity().runOnUiThread {
             try {
-                viewModel.count(ID_ROOM)
+                viewModel.count(roomId)
             } catch (e: JSONException) {
                 return@runOnUiThread
             }
         }
+    }
+
+
+    private fun onSend(){
+        roomService.send(getTextInputValue())
+        clearTextInput()
+    }
+
+    private fun onFileSend(){
+      roomService.send("")
+    }
+
+    private fun clearTextInput(){
+        binding.inputMessage.text.clear()
+    }
+    private fun getTextInputValue():String{
+        val message = binding.inputMessage.text.toString()
+        return message.trim().replace("\\s+".toRegex(), " ")
+
     }
 
     private val requestPermissionLauncher: ActivityResultLauncher<String> =
@@ -234,8 +240,7 @@ class ChatFragment: Fragment(){
         override fun onReceive(context: Context?, intent: Intent?) {
             when(intent?.action){
                 UPLOAD_FILE ->{
-                    viewModel.count(ID_ROOM)
-                    socketSendMessage()
+                    onFileSend()
                 }
                 BUBBLE_IMAGE_ON_CLICK ->{
                     val ID_BUBBLE = intent.getStringExtra("_id").toString()
@@ -278,7 +283,7 @@ class ChatFragment: Fragment(){
             val item:JSONObject = binding.bubbleListView.getItemAtPosition(position!!) as JSONObject
             val file:JSONObject = item.opt("file") as JSONObject
             val fileName = file.get("name") as String
-            val fileUrl = RyanDahl().URL_ROOM_MEDIA + ID_ROOM + "/" + fileName
+            val fileUrl = RyanDahl().URL_ROOM_MEDIA + roomId + "/" + fileName
             viewModel.downloadFileAndSave(requireContext(), fileUrl, fileName)
             showProgressDialog()
         }  catch (e:Exception){
@@ -286,34 +291,17 @@ class ChatFragment: Fragment(){
         }
     }
 
-    private fun sendBubble(){
-        val message = binding.inputMessage.text.toString()
-        if(AndreyBreslav().emptyFilter(message)){
-            val cleanedMessage = message.trim().replace("\\s+".toRegex(), " ")
-            viewModel.send(cleanedMessage, AUTH_UID, ID_ROOM)
-            binding.inputMessage.text.clear()
-            socketSendMessage()
-        }else{
-            binding.inputMessage.text.clear()
-        }
-    }
 
-    private fun socketSendMessage(){
-        inboxSocket.emit(socketKeys.SEND_MESSAGE, JSONObject().apply {
-            put("roomid",ID_ROOM)
-            put("fid", AUTH_UID)
-        })
 
-    }
 
     private fun showPickerSheet(){
-        val bottomSheetFragment: PickerBottomSheetFragment = PickerBottomSheetFragment.instance(ID_ROOM, AUTH_UID)
+        val bottomSheetFragment: PickerBottomSheetFragment = PickerBottomSheetFragment.instance(roomId, userId)
         bottomSheetFragment.show(parentFragmentManager, "chatBottomSheet")
     }
 
     private fun showGallerySheet(ID_BUBBLE:String){
         try {
-            val bottomSheetFragment: GalleryBottomSheetFragment = GalleryBottomSheetFragment.instance(itemList.toString(), ID_ROOM, ID_BUBBLE)
+            val bottomSheetFragment: GalleryBottomSheetFragment = GalleryBottomSheetFragment.instance(itemList.toString(), roomId, ID_BUBBLE)
             bottomSheetFragment.enterTransition = 0
             bottomSheetFragment.exitTransition = 0
             bottomSheetFragment.show(parentFragmentManager, "galleryBottomSheet")
@@ -339,7 +327,7 @@ class ChatFragment: Fragment(){
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
-        inboxSocket.disconnect()
+      roomService.disconnect()
     }
 
 

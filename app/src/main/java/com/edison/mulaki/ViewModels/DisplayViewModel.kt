@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.edison.mulaki.Services.InboxService
 import com.edison.mulaki.Services.RoomService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -11,7 +12,7 @@ import kotlinx.coroutines.withContext
 
 class DisplayViewModel: ViewModel() {
 
-    private val ds = RoomService()
+    private val ds = InboxService()
 
     private val _resultLiveData = MutableLiveData<String>()
     val resultLiveData: LiveData<String> get() = _resultLiveData

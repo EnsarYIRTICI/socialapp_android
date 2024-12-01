@@ -1,18 +1,53 @@
 package com.edison.mulaki.Services
 
 import com.edison.mulaki.Utils.RyanDahl
-import com.edison.mulaki.Utils.TimBernersLee
+import io.socket.client.IO
+import io.socket.client.Socket
+import io.socket.emitter.Emitter
 import org.json.JSONObject
 
 class RoomService {
 
-    private val tim = TimBernersLee()
+    private var _inboxSocket: Socket? = null
+    private val inboxSocket get() = _inboxSocket!!
 
-    fun fetchDisplays(AUTH_FID:String):String{
-        return tim.httpPost(RyanDahl().API_ROOM_LIST, JSONObject().apply {
-            put("fid", AUTH_FID)
+    var roomId:String? = null
+    var userId:String? = null
+
+    fun initialize(roomId: String, userId:String) {
+        this.roomId = roomId
+        this.userId = userId
+        
+        connect()
+        join()
+    }
+
+    private fun connect(){
+        val opts = IO.Options()
+        opts.path = "/socket/inbox"
+
+        _inboxSocket = IO.socket(RyanDahl().SOCKET_URL, opts)
+        inboxSocket.connect()
+    }
+
+    private fun join(){
+        inboxSocket.emit("join-room",roomId);
+    }
+
+    fun get(onGet:Emitter.Listener){
+        inboxSocket.on("on-message", onGet)
+    }
+
+    fun send(message:String){
+        inboxSocket.emit("message", JSONObject().apply {
+            put("roomid",roomId)
+            put("sender_uid", userId)
+            put("message", message)
 
         })
+    }
 
+    fun disconnect(){
+        inboxSocket.disconnect()
     }
 }
